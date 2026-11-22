@@ -1,0 +1,385 @@
+{
+ "1": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "dragon_front.png"
+  }
+ },
+ "2": {
+  "class_type": "LoadBackgroundRemovalModel",
+  "inputs": {
+   "bg_removal_name": "birefnet.safetensors"
+  }
+ },
+ "3": {
+  "class_type": "RemoveBackground",
+  "inputs": {
+   "bg_removal_model": [
+    "2",
+    0
+   ],
+   "image": [
+    "1",
+    0
+   ]
+  }
+ },
+ "4": {
+  "class_type": "ImageCropToMask",
+  "inputs": {
+   "images": [
+    "1",
+    0
+   ],
+   "masks": [
+    "3",
+    0
+   ],
+   "width": 1024,
+   "height": 1024,
+   "pad_factor": 1.1,
+   "grow_mask": 0,
+   "background": "#000000"
+  }
+ },
+ "5": {
+  "class_type": "LoadMoGeModel",
+  "inputs": {
+   "model_name": "moge_2_vitl_normal_fp16.safetensors"
+  }
+ },
+ "6": {
+  "class_type": "MoGeInference",
+  "inputs": {
+   "moge_model": [
+    "5",
+    0
+   ],
+   "image": [
+    "4",
+    0
+   ],
+   "resolution_level": 9,
+   "fov_x_degrees": 0,
+   "batch_size": 4,
+   "force_projection": true,
+   "apply_mask": true,
+   "refine_steps": 3
+  }
+ },
+ "7": {
+  "class_type": "MoGeGeometryToFOV",
+  "inputs": {
+   "moge_geometry": [
+    "6",
+    0
+   ],
+   "axis": "horizontal",
+   "unit": "degrees"
+  }
+ },
+ "8": {
+  "class_type": "CLIPVisionLoader",
+  "inputs": {
+   "clip_name": "dino_v3_L_naf_fp32.safetensors"
+  }
+ },
+ "9": {
+  "class_type": "Pixal3DConditioning",
+  "inputs": {
+   "clip_vision_model": [
+    "8",
+    0
+   ],
+   "image": [
+    "4",
+    0
+   ],
+   "camera_angle_x": [
+    "7",
+    0
+   ]
+  }
+ },
+ "10": {
+  "class_type": "UnetLoaderGGUF",
+  "inputs": {
+   "unet_name": "pixal3d_Q4_K_M.gguf"
+  }
+ },
+ "11": {
+  "class_type": "CFGOverride",
+  "inputs": {
+   "model": [
+    "10",
+    0
+   ],
+   "cfg": 1,
+   "start_percent": 0.667,
+   "end_percent": 1
+  }
+ },
+ "12": {
+  "class_type": "RescaleCFG",
+  "inputs": {
+   "model": [
+    "11",
+    0
+   ],
+   "multiplier": 0.7
+  }
+ },
+ "13": {
+  "class_type": "ModelSamplingSD3",
+  "inputs": {
+   "model": [
+    "12",
+    0
+   ],
+   "shift": 5
+  }
+ },
+ "14": {
+  "class_type": "CFGOverride",
+  "inputs": {
+   "model": [
+    "10",
+    0
+   ],
+   "cfg": 1,
+   "start_percent": 0.769,
+   "end_percent": 1
+  }
+ },
+ "15": {
+  "class_type": "RescaleCFG",
+  "inputs": {
+   "model": [
+    "14",
+    0
+   ],
+   "multiplier": 0.5
+  }
+ },
+ "16": {
+  "class_type": "EmptyTrellis2LatentStructure",
+  "inputs": {
+   "batch_size": 1
+  }
+ },
+ "17": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "13",
+    0
+   ],
+   "seed": 56,
+   "steps": 12,
+   "cfg": 7.5,
+   "sampler_name": "euler",
+   "scheduler": "normal",
+   "positive": [
+    "9",
+    0
+   ],
+   "negative": [
+    "9",
+    1
+   ],
+   "latent_image": [
+    "16",
+    0
+   ],
+   "denoise": 1
+  }
+ },
+ "18": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "trellis_2_shape_vae_bf16.safetensors"
+  }
+ },
+ "19": {
+  "class_type": "VaeDecodeStructureTrellis2",
+  "inputs": {
+   "samples": [
+    "17",
+    0
+   ],
+   "vae": [
+    "18",
+    0
+   ],
+   "resolution": "32"
+  }
+ },
+ "20": {
+  "class_type": "Trellis2ShapeStage",
+  "inputs": {
+   "positive": [
+    "9",
+    0
+   ],
+   "negative": [
+    "9",
+    1
+   ],
+   "voxel": [
+    "19",
+    0
+   ]
+  }
+ },
+ "21": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "15",
+    0
+   ],
+   "seed": 42,
+   "steps": 20,
+   "cfg": 7.5,
+   "sampler_name": "euler",
+   "scheduler": "normal",
+   "positive": [
+    "20",
+    0
+   ],
+   "negative": [
+    "20",
+    1
+   ],
+   "latent_image": [
+    "20",
+    2
+   ],
+   "denoise": 1
+  }
+ },
+ "22": {
+  "class_type": "Trellis2UpsampleStage",
+  "inputs": {
+   "positive": [
+    "20",
+    0
+   ],
+   "negative": [
+    "20",
+    1
+   ],
+   "shape_latent": [
+    "21",
+    0
+   ],
+   "vae": [
+    "18",
+    0
+   ],
+   "target_resolution": 1536
+  }
+ },
+ "23": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "15",
+    0
+   ],
+   "seed": 42,
+   "steps": 12,
+   "cfg": 7.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "positive": [
+    "22",
+    0
+   ],
+   "negative": [
+    "22",
+    1
+   ],
+   "latent_image": [
+    "22",
+    2
+   ],
+   "denoise": 1
+  }
+ },
+ "24": {
+  "class_type": "VaeDecodeShapeTrellis",
+  "inputs": {
+   "samples": [
+    "23",
+    0
+   ],
+   "vae": [
+    "18",
+    0
+   ]
+  }
+ },
+ "25": {
+  "class_type": "WeldVertices",
+  "inputs": {
+   "mesh": [
+    "24",
+    0
+   ],
+   "epsilon_rel": 1e-05,
+   "epsilon_abs": 0
+  }
+ },
+ "26": {
+  "class_type": "FillHoles",
+  "inputs": {
+   "mesh": [
+    "25",
+    0
+   ],
+   "max_perimeter": 0.03,
+   "weld_epsilon_rel": 1e-05,
+   "max_vertices": 16,
+   "fill_chains": false
+  }
+ },
+ "27": {
+  "class_type": "RemeshMesh",
+  "inputs": {
+   "mesh": [
+    "26",
+    0
+   ],
+   "resolution": 1024,
+   "sign_mode": "solid",
+   "sign_mode.fill": 20.0,
+   "sign_mode.qef": false,
+   "band": 1.0,
+   "project_back": 0.0,
+   "fix_poles": false,
+   "smooth_iters": 0,
+   "drop_small_components": 0.01,
+   "precluster_max_verts": 4000000
+  }
+ },
+ "28": {
+  "class_type": "MeshToFile3D",
+  "inputs": {
+   "mesh": [
+    "27",
+    0
+   ]
+  }
+ },
+ "29": {
+  "class_type": "SaveGLB",
+  "inputs": {
+   "mesh": [
+    "28",
+    0
+   ],
+   "filename_prefix": "3d/pixal3d_gguf_Q4_K_M"
+  }
+ }
+}
