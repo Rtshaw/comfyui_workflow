@@ -80,6 +80,12 @@ main_pid() { systemctl show -p MainPID --value "$UNIT"; }
 main_cmdline() { local p; p=$(main_pid); [ "$p" != 0 ] && tr '\0' ' ' < "/proc/$p/cmdline" | sed 's/ $//'; }
 stats_versions() { curl -sf -m3 "$COMFY/system_stats" | js 'd["system"]["python_version"]+"|"+d["system"]["pytorch_version"]'; }
 comfy_up() { curl -sf -m3 "$COMFY/system_stats" >/dev/null; }
+# 基準檔：第 1 行 cmdline、第 2 行版本。main_cmdline 結尾沒有換行，須各自取值再分行寫入，否則兩行會黏在一起
+write_baseline() {
+    local c v; c=$(main_cmdline); v=$(stats_versions)
+    [ -n "$c" ] && [ -n "$v" ] || die "無法讀取正式程序 cmdline 或版本"
+    printf '%s\n%s\n' "$c" "$v" > "$BASELINE"; chmod 0644 "$BASELINE"
+}
 
 # 佇列 running 與 pending 都必須為空；讀不到也視為不可重啟
 queue_empty() { curl -sf -m5 "$COMFY/queue" | "$PY" -I -c 'import json,sys;d=json.load(sys.stdin);sys.exit(0 if not d["queue_running"] and not d["queue_pending"] else 1)'; }
@@ -170,7 +176,7 @@ stage1() {
     chown -R root:root "$OPT"; chmod -R u=rwX,go=rX "$OPT"
     install -o root -g root -m 0755 "$SRC/launcher/comfyui-profile-launch" "$LAUNCHER"
     install -o root -g root -m 0644 "$SRC/deploy/profiles.example.toml" "$ETC/profiles.toml"
-    { main_cmdline; stats_versions; } > "$BASELINE"; chmod 0644 "$BASELINE"
+    write_baseline
 
     log "設定管理員密碼（至少 12 字元，輸入不回顯）"
     sleep 1   # 讓 tail 先顯示提示；getpass 本身直接讀寫 /dev/tty
