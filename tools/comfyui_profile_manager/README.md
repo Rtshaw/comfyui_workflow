@@ -40,7 +40,10 @@
 
 ## 部署步驟（**需另行批准，本輪未執行**）
 
-實際部署以 `deploy/deploy.sh` 分四階段執行（每階段驗證、失敗即停止並回復）；以下為其內容說明。
+實際部署以 `deploy/deploy.sh` 分四階段執行（`stage1`～`stage4`，每階段驗證、失敗即停止並回復）；以下為其內容說明。
+`rescue-drill`（故障注入＋救援演練，會讓 ComfyUI 停止約 30 秒）不屬預設流程，需另行批准才執行。
+腳本只寫本機日誌 `/var/log/comfyui-profile-deploy.log`，畫面由背景 tail 顯示；Ctrl-C／SSH 斷線會停止並自動回復，
+回復中再按一次 Ctrl-C 可強制中止（之後請執行 `rescue`）。SIGKILL 或主機斷電無法自動回復。
 
 1. 建立使用者：`useradd --system --shell /sbin/nologin comfyui-ctl`
 2. 複製程式到 `/opt/comfyui-profile-manager/`（`profile_manager/`、`static/`，root 擁有）。
