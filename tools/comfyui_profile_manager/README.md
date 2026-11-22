@@ -3,8 +3,8 @@
 在同一台 Server 上，以網頁一鍵切換 `comfyui.service` 使用的 ComfyUI 環境（venv / 參數）。
 只用 Python 標準函式庫（Server 為 `/usr/bin/python3.12`）。
 
-> 狀態：僅完成本機實作與離線／模擬測試。**尚未部署，未在真實 Server 驗證**（WORKFLOW/部署驗證 NOT RUN）。
-> 依 AGENTS.md，部署與推送都需另行批准與獨立 Reviewer 驗收。
+> 狀態：已於 2026-11-22 以 commit `b1b0907` 部署到真實 Server；Stage 1～4 與瀏覽器介面驗收 PASS，獨立 Reviewer 驗收 PASS。
+> 仍有未驗證項目，見〈部署驗證證據〉。依 AGENTS.md，推送須另行批准；此版本尚未 push，PR 維持 Draft。
 
 ## 架構
 
@@ -38,7 +38,7 @@
 所有請求檢查 Host，POST 另檢查 Origin；登入同一來源 5 次失敗鎖 5 分鐘。服務只監聽 127.0.0.1。
 備援方案：若不用 polkit，可改 sudoers 只允許 `systemctl restart comfyui.service` 單一命令（本 MVP 未實作）。
 
-## 部署步驟（**需另行批准，本輪未執行**）
+## 部署步驟（已於 2026-11-22 依 `b1b0907` 執行，見〈部署驗證證據〉）
 
 實際部署以 `deploy/deploy.sh` 分四階段執行（`stage1`～`stage4`，每階段驗證、失敗即停止並回復）；以下為其內容說明。
 `rescue-drill`（故障注入＋救援演練，會讓 ComfyUI 停止約 30 秒）不屬預設流程，需另行批准才執行。
@@ -111,4 +111,23 @@ python -m unittest discover        # 於本目錄執行，離線
 ### 測試證據
 
 - 日期 2026-11-22；本機 Windows 10，`python -B -W error::ResourceWarning -m unittest discover`：Python 3.13.0 與 3.11.9 皆 26 tests OK。
-- 以上均為離線模擬，**不能取代**真實 Server 上的部署驗證（systemd、polkit、SELinux、真實 ComfyUI 重啟皆 NOT RUN）。
+- 以上為離線模擬；真實 Server 的驗證見下節。
+
+### 部署驗證證據
+
+- 日期 2026-11-22；Server RockyLinux 9（systemd 252、SELinux Enforcing）；部署版本 commit `b1b0907cc50c08c9b7787df49e242b6a3db254d4`，Server 上 `deploy.sh` sha256 與該 commit 相同。
+- Stage 1：前兩次因基準檔 cmdline 與版本黏成同一行而在「啟動器 argv 與現行 ExecStart 不同」FAIL（根因：`main_cmdline` 輸出無結尾換行；於 `b1b0907` 修正並加回歸測試）；修正後重跑 PASS。ComfyUI 未重啟。
+- Stage 2 PASS：ComfyUI 改由啟動器啟動（重啟 1 次），cmdline、版本與基準相同，SELinux domain 維持 `unconfined_service_t`，無 AVC。
+- Stage 3 PASS：放置 polkit 規則與 controller unit，controller 只監聽 127.0.0.1:8189，ComfyUI 未重啟。
+- Stage 4 PASS：成功切到 `standard_check`、切回 `standard`、故意不符的 `rollback_check` 觸發 ROLLED_BACK 並自動回復；ComfyUI 重啟 4 次；測試 profile 已移除；最終 `active=standard`、佇列為空。
+- 瀏覽器介面驗收 PASS（經 SSH tunnel 登入與操作，由使用者執行並回報）；未保存截圖或日誌。
+- 獨立 Reviewer 唯讀驗收 PASS：最終服務狀態、權限、帳號、設定檔皆與證據一致。
+- 部署日誌在 Server 的 `/var/log/comfyui-profile-deploy.log`（root 0600，不提交）。
+
+**NOT RUN／未驗證**：
+
+- 真實第二個環境（`trellis2`，`validated = false`）的切換與工作流執行。
+- `rescue-drill`、手動 SSH 救援步驟的實機演練。
+- sudo 層訊號轉送、真實 SSH 斷線自動回復、佇列忙碌時等待 600 秒的路徑。
+- polkit 規則文字未直接檢視（目錄 0700）；僅由 controller 能重啟 `comfyui.service` 間接證明。
+- 瀏覽器驗收未保存可核對的證據檔。
