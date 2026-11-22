@@ -1,0 +1,3 @@
+# Python 編譯暫存
+__pycache__/
+*.pyc
