@@ -4,7 +4,7 @@
 只用 Python 標準函式庫（Server 為 `/usr/bin/python3.12`）。
 
 > 狀態：已於 2026-11-22 以 commit `b1b0907` 部署到真實 Server；Stage 1～4 與瀏覽器介面驗收 PASS，獨立 Reviewer 驗收 PASS。
-> 仍有未驗證項目，見〈部署驗證證據〉。依 AGENTS.md，推送須另行批准；此版本尚未 push，PR 維持 Draft。
+> 仍有未驗證項目，見〈部署驗證證據〉。已於 2026-11-22 經使用者批准推送並經 PR #1 合併至 `main`（保留原 commit 以對應 Server 部署 SHA）。
 
 ## 架構
 
