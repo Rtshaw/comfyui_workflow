@@ -40,6 +40,8 @@
 
 ## 部署步驟（**需另行批准，本輪未執行**）
 
+實際部署以 `deploy/deploy.sh` 分四階段執行（每階段驗證、失敗即停止並回復）；以下為其內容說明。
+
 1. 建立使用者：`useradd --system --shell /sbin/nologin comfyui-ctl`
 2. 複製程式到 `/opt/comfyui-profile-manager/`（`profile_manager/`、`static/`，root 擁有）。
 3. `launcher/comfyui-profile-launch` → `/usr/local/libexec/`（root:root 0755；注意 SELinux Enforcing，必要時 `restorecon -v`）。
@@ -105,5 +107,5 @@ python -m unittest discover        # 於本目錄執行，離線
 
 ### 測試證據
 
-- 日期 2026-11-22；本機 Windows 10，Python 3.13.0：25 tests OK；Python 3.11.9：25 tests OK。
+- 日期 2026-11-22；本機 Windows 10，`python -B -W error::ResourceWarning -m unittest discover`：Python 3.13.0 與 3.11.9 皆 26 tests OK。
 - 以上均為離線模擬，**不能取代**真實 Server 上的部署驗證（systemd、polkit、SELinux、真實 ComfyUI 重啟皆 NOT RUN）。
