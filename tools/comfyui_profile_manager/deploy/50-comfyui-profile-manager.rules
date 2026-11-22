@@ -1,0 +1,10 @@
+// /etc/polkit-1/rules.d/50-comfyui-profile-manager.rules
+// 只允許 comfyui-ctl 對 comfyui.service 執行 restart（controller 只用到 restart），其他一律不放行。
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        subject.user == "comfyui-ctl" &&
+        action.lookup("unit") == "comfyui.service" &&
+        action.lookup("verb") == "restart") {
+        return polkit.Result.YES;
+    }
+});

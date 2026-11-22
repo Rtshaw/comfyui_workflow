@@ -1,0 +1,20 @@
+# /etc/systemd/system/comfyui-profile-manager.service
+[Unit]
+Description=ComfyUI Profile Manager (controller)
+After=network.target
+
+[Service]
+User=comfyui-ctl
+Group=comfyui-ctl
+WorkingDirectory=/opt/comfyui-profile-manager
+ExecStart=/usr/bin/python3.12 -m profile_manager.server --host 127.0.0.1 --port 8189
+# 自動建立並擁有 /var/lib/comfyui-profile-manager（active / last_good 檔）
+StateDirectory=comfyui-profile-manager
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

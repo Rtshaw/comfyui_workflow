@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComfyUI Profile Manager</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #8884; padding: .4rem .6rem; text-align: left; }
+  .ok { color: #1a7f37; } .bad { color: #cf222e; } .warn { color: #9a6700; }
+  pre { background: #8881; padding: .6rem; white-space: pre-wrap; }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<h1>ComfyUI Profile Manager</h1>
+
+<form id="login" hidden>
+  <label>管理員密碼 <input type="password" id="pw" autocomplete="current-password" required></label>
+  <button>登入</button> <span id="loginErr" class="bad"></span>
+</form>
+
+<main id="app" hidden>
+  <p>目前 profile：<b id="active"></b>　<button id="logout">登出</button></p>
+  <h2>即時狀態</h2>
+  <table id="live"></table>
+  <h2>可切換的 profile</h2>
+  <table id="profiles"></table>
+  <h2>切換進度</h2>
+  <p id="result"></p>
+  <pre id="steps"></pre>
+  <pre id="rescue" class="bad" hidden></pre>
+</main>
+
+<script>
+// 全部以 textContent 寫入 DOM，避免 XSS。csrf 由 /api/status 或登入回應取得，僅存記憶體。
+let csrf = null, timer = null;
+const $ = id => document.getElementById(id);
+
+async function api(method, path, body) {
+  const r = await fetch(path, {
+    method, credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf || "" },
+    body: method === "POST" ? JSON.stringify(body || {}) : undefined,
+  });
+  let data = {};
+  try { data = await r.json(); } catch (e) {}
+  return { ok: r.ok, status: r.status, data };
+}
+
+function row(table, cells, header) {
+  const tr = document.createElement("tr");
+  for (const c of cells) {
+    const td = document.createElement(header ? "th" : "td");
+    if (c instanceof Node) td.appendChild(c); else td.textContent = c;
+    tr.appendChild(td);
+  }
+  table.appendChild(tr);
+}
+
+function render(s) {
+  $("login").hidden = true; $("app").hidden = false;
+  csrf = s.csrf || csrf;
+  $("active").textContent = s.active || "(未知)";
+  const l = s.live, t = $("live"); t.replaceChildren();
+  row(t, ["健康", l.healthy ? "正常" : "無回應"]);
+  row(t, ["Python / PyTorch", `${l.python || "-"} / ${l.pytorch || "-"}（CUDA 版本含於 PyTorch 後綴）`]);
+  row(t, ["GPU", l.device || "-"]);
+  row(t, ["VRAM", l.vram ? `${l.vram.used_mb} / ${l.vram.total_mb} MB` : "取不到"]);
+  row(t, ["佇列", l.running === null ? "-" : `執行中 ${l.running}，等待 ${l.pending}`]);
+
+  const p = $("profiles"); p.replaceChildren();
+  row(p, ["名稱", "安裝", "驗證", "操作"], true);
+  for (const x of s.profiles) {
+    const btn = document.createElement("button");
+    btn.textContent = x.active ? "使用中" : "切換";
+    btn.disabled = x.active || !x.validated || !x.installed || s.state !== "IDLE";
+    btn.onclick = () => doSwitch(x);
+    row(p, [x.display_name + " (" + x.name + ")", x.installed ? "已安裝" : "未安裝",
+            x.validated ? "已驗證" : "未驗證", btn]);
+  }
+  $("steps").textContent = s.steps.join("\n");
+  const r = s.result;
+  $("result").textContent = s.state === "SWITCHING" ? "切換中…" : (r ? `${r.outcome}：${r.reason}` : "");
+  $("result").className = r ? (r.outcome === "SUCCESS" ? "ok" : (r.outcome === "ROLLED_BACK" ? "warn" : "bad")) : "";
+  $("rescue").hidden = !s.rescue_text; $("rescue").textContent = s.rescue_text || "";
+}
+
+async function doSwitch(x) {
+  const ok = confirm(`切換到 ${x.display_name}？\n\n` +
+    "• ComfyUI 會重啟，約需數十秒到數分鐘，期間無法使用\n" +
+    "• 僅在佇列為空時可切換；進行中的任務不會被保存\n" +
+    "• 失敗時會自動回復到原 profile；回復也失敗則需 SSH 救援");
+  if (!ok) return;
+  const r = await api("POST", "/api/switch", { profile: x.name });
+  if (!r.ok) alert("無法切換：" + (r.data.error || r.status));
+  poll();
+}
+
+async function poll() {
+  const r = await api("GET", "/api/status");
+  if (r.status === 401) { $("app").hidden = true; $("login").hidden = false; clearInterval(timer); timer = null; return; }
+  if (r.ok) render(r.data);
+  if (!timer) timer = setInterval(poll, 2000);
+}
+
+$("login").onsubmit = async e => {
+  e.preventDefault();
+  const r = await api("POST", "/api/login", { password: $("pw").value });
+  $("pw").value = "";
+  if (r.ok) { csrf = r.data.csrf; $("loginErr").textContent = ""; poll(); }
+  else $("loginErr").textContent = r.data.error || "登入失敗";
+};
+$("logout").onclick = async () => { await api("POST", "/api/logout"); csrf = null; poll(); };
+poll();
+</script>
+</body>
+</html>
