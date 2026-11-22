@@ -1,6 +1,6 @@
 # 驗證記錄：Pixal3D GGUF Q4_K_M
 
-日期：2026-11-22。審查類型：Implementer 自我檢查（非獨立 Reviewer）。
+日期：2026-11-22。審查類型：Implementer 自我檢查，另經獨立 Reviewer 於 2026-11-22 唯讀核對（PASS WITH CONDITIONS，條件已處理）。
 
 ## 環境
 
@@ -30,7 +30,7 @@ torch 2.14.1+cu130、Python 3.12.15、RTX 3060 12GB。正式服務（8188）、�
 - UI->API 轉換與 `workflow_api.json` 比對：PASS（class_type / inputs 完全相同）。
 - `GET /`（8190）200；`POST /api/userdata/workflows%2Fpixal3d_gguf.json` 200，`GET /api/userdata?dir=workflows` 列出 `pixal3d_gguf.json`。
 - 轉換後 API 實跑（`api_from_ui.json`，同 seed 56/42/42）：history success，耗時 181 s（run1 180 s），顯存峰值 6839 MiB（run1 6871），輸出 `pixal3d_gguf_Q4_K_M_00002_.glb`（121,721,044 bytes）sha256 `e8dbf4fb71bb835697c4a76253f240ccdc39c587b2780b5ad5149a8db16016b5`（與 run1 不同，非位元組確定性）。網格：6,762,364 面、非流形邊 1052、25 連通體、未封閉（run1：6,762,440 / 1051 / 25）。
-- 瀏覽器 GUI 載入並 Queue：**PENDING user**（未安裝可用的無頭瀏覽器自動化工具，不新增安裝）。測試實例保持運行，使用者以 `ssh -L 8190:127.0.0.1:8190 comfyui-server` 後開 `http://127.0.0.1:8190/`，在工作流清單開 `pixal3d_gguf.json`。
+- 瀏覽器 GUI 載入並 Queue：**使用者回報 PASS（2026-11-22；Agent 未能驗證，無截圖或日誌留存）**。方式：使用者以 `ssh -L 8190:127.0.0.1:8190 comfyui-server` 後開 `http://127.0.0.1:8190/`，在工作流清單開 `pixal3d_gguf.json`。
 - 證據（伺服器）：`logs/ui_run1/`、`api_from_ui.json`、`workflow.json`、`object_info.json`。
 
 ## 網格檢查（trimesh 5.2.1，`mesh_check.py` + 退化面）
@@ -50,10 +50,10 @@ STL 以 trimesh 匯出（`output/3d/q4.stl`，約 338 MB，僅留在伺服器）
 ## 判定
 
 - WORKFLOW (API)：PASS（API 提交、history success、產出 GLB 可被 trimesh 重新讀取）
-- WORKFLOW (GUI)：PARTIAL（離線檢查、轉換比對、轉換後實跑 PASS；瀏覽器載入 PENDING user）
+- WORKFLOW (GUI)：PASS（離線檢查、轉換比對、轉換後實跑 PASS；瀏覽器載入為使用者回報 PASS，無留存證據）
 - OUTPUT QUALITY：NOT VERIFIED（未目視評定；未產生預覽圖）
 - PRINT READINESS：NOT VERIFIED（網格未封閉、有非流形邊；伺服器無切片器 CLI，未切片、未試印）
-- Q8_0：NOT RUN；trellis2 validated=false；本次變更未經獨立 Reviewer
+- Q8_0：NOT RUN；trellis2 validated=false；獨立 Reviewer 已核對（未重跑 selftest/check_workflow）
 
 ## 證據位置（伺服器）
 

@@ -6,8 +6,8 @@
 ## 狀態摘要（詳見 validation.md）
 
 - WORKFLOW (API)：PASS（2026-11-22，`workflow_api.json` 實跑 1 次）
-- WORKFLOW (GUI)：PARTIAL — 離線結構檢查 PASS、UI->API 轉換與 `workflow_api.json` 完全一致 PASS、轉換後 API 實跑 PASS、前端首頁 200 且 workflow 可寫入工作流清單 PASS；**瀏覽器實際載入並按 Queue：PENDING user**
-- 本次變更尚未經獨立 Reviewer 審查
+- WORKFLOW (GUI)：PASS — 離線結構檢查、UI->API 轉換與 `workflow_api.json` 完全一致、轉換後 API 實跑、前端首頁與工作流清單皆 PASS；瀏覽器實際載入並執行為**使用者回報 PASS（2026-11-22，未由 Agent 驗證，無截圖留存）**
+- 獨立 Reviewer 已於 2026-11-22 核對（判定 PASS WITH CONDITIONS，條件為更新本文件狀態，已完成）；未重跑 selftest 與 check_workflow，未目視 GLB
 - OUTPUT QUALITY：NOT VERIFIED（需使用者指定評定者目視）
 - PRINT READINESS：NOT VERIFIED（網格非流形邊 1051、25 個連通體、未封閉；無切片器、未切片、未試印）
 
@@ -62,7 +62,7 @@ shape2txt（紋理階段）本工作流不使用，但 ComfyUI 的模型偵測�
 ## 限制
 
 - 僅 Q4_K_M 實測；Q8_0 未測；`trellis2` 相關 validated=false（未納入本驗證）。
-- `workflow.json` 由 `build_workflow_json.py` 依 `/object_info` 產生；RemeshMesh 的 `sign_mode`（DynamicCombo）子欄位在 widgets_values 的排列依前端 1.57.6 慣例推定，尚未用真實瀏覽器確認，載入時請核對 sign_mode=solid、fill=20、qef=false。
+- `workflow.json` 由 `build_workflow_json.py` 依 `/object_info` 產生；RemeshMesh 的 `sign_mode`（DynamicCombo）子欄位在 widgets_values 的排列依前端 1.57.6 慣例推定，使用者 GUI 載入回報 PASS，但未留存 sign_mode 數值證據；如重新載入請核對 sign_mode=solid、fill=20、qef=false。
 - 同 seed 重跑結果不位元組相同（GPU 非確定性；GLB sha256 不同，面數差約 80）。
 - 網格未封閉、有非流形邊與多個連通體，不可直接視為可列印；人物／造型品質未經評定。
 - 輸出 GLB 約 120 MB、STL 約 340 MB，不入庫。
