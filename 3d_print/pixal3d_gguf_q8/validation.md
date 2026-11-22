@@ -7,7 +7,7 @@
 - 正式服務 8188（pid 34758），Profile `pixal3d_gguf`；ComfyUI 0.43.0、ComfyUI-GGUF 1.1.10、torch 2.14.1+cu130、Python 3.12.15、RTX 3060 12GB（12288 MiB）。
 - 啟動參數含 `--extra-model-paths-config .../profiles/pixal3d_gguf/extra_model_paths.yaml --output-directory .../profiles/pixal3d_gguf/output`；全程未重啟、未啟動 8190。
 - 伺服器工作目錄：`/srv/comfyui-data/poc_pixal3d_gguf/`；模型 symlink：`profiles/pixal3d_gguf/models/diffusion_models/pixal3d_Q8_0.gguf`（Q4 symlink 未動）。
-- 輸入圖 `dragon_front.png` sha256 `524c3056cd1a057a9842667ef395ffd23b9d74b4a3263e5739d887ecee4f0dc1`；因 8188 的 input 目錄原無此檔，以 `POST /upload/image`（overwrite=false）上傳一份，內容與 POC 輸入相同。
+- 輸入圖 `dragon_front.png` sha256 `524c3056cd1a057a9842667ef395ffd23b9d74b4a3263e5739d887ecee4f0dc1`；因 8188 的 input 目錄原無此檔，以 `POST /upload/image`（overwrite=false）上傳一份，內容與 POC 輸入相同。**此上傳超出原授權範圍**（原批准清單未含寫入 8188 input 目錄）；為新增檔案，未覆蓋任何既有檔案。
 
 ## 下載與合併
 
