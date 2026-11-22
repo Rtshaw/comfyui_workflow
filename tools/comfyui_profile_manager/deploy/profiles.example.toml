@@ -1,0 +1,25 @@
+# 部署到 /etc/comfyui-profiles/profiles.toml（root:root 0644）。
+# validated 只能由管理者在人工實測通過後手動改為 true；controller 與啟動器都會檢查。
+# 新增 profile：複製一個 [[profile]] 區塊並修改，名稱只可用 [a-z0-9_-]。
+
+[[profile]]
+name = "standard"
+display_name = "Standard（現行）"
+python = "/srv/comfyui/venv/bin/python"
+app_dir = "/srv/comfyui/app"
+# 必須與現行 comfyui.service 的 ExecStart 參數完全相同
+args = ["--listen", "127.0.0.1", "--port", "8188", "--disable-auto-launch", "--enable-manager"]
+expected_python = "3.12"        # 前綴比對 /system_stats 的 python_version
+expected_torch = "2.14.1"       # 前綴比對 pytorch_version（實際為 2.14.1+cu130）
+validated = true
+
+[[profile]]
+name = "trellis2"
+display_name = "Trellis2（尚未驗證）"
+python = "/srv/comfyui/profiles/trellis2/venv/bin/python"
+app_dir = "/srv/comfyui/app"    # 若需不同 ComfyUI 版本，改指向另一份 checkout
+args = ["--listen", "127.0.0.1", "--port", "8188", "--disable-auto-launch", "--enable-manager",
+        "--base-directory", "/srv/comfyui-data/profiles/trellis2"]
+expected_python = "3.12"
+expected_torch = "2.14"         # 佔位，實測後依實際版本修正
+validated = false

@@ -1,0 +1,60 @@
+#!/usr/bin/python3.12
+"""comfyui.service 的固定啟動器（部署時由 root 擁有，權限 0755）。
+
+用途：讀 active 名稱檔，到 root 擁有的 profiles.toml 查核准設定，驗證後 os.execv 目標 ComfyUI。
+controller 只能寫「名稱」，無法注入任意 python 路徑或參數。
+錯誤處理：名稱不合法、不存在、validated=false、python 不可執行 => 印出原因到 stderr，退出碼 2，不 exec。
+--dry-run：只印出將執行的 argv（JSON），不 exec，供測試使用。
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import tomllib
+
+NAME_RE = re.compile(r"^[a-z0-9_-]{1,32}$")
+
+
+def refuse(msg):
+    print(f"comfyui-profile-launch: 拒絕啟動：{msg}", file=sys.stderr)
+    sys.exit(2)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--profiles", default="/etc/comfyui-profiles/profiles.toml")
+    ap.add_argument("--active-file", default="/var/lib/comfyui-profile-manager/active")
+    ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args()
+
+    try:
+        with open(a.active_file, encoding="utf-8") as f:
+            name = f.read().strip()
+        with open(a.profiles, "rb") as f:
+            data = tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        refuse(f"無法讀取設定：{e}")
+    if not NAME_RE.match(name):
+        refuse(f"active 名稱不合法：{name!r}")
+    prof = next((p for p in data.get("profile", []) if p.get("name") == name), None)
+    if prof is None:
+        refuse(f"profile 不存在於核准清單：{name}")
+    if prof.get("validated") is not True:
+        refuse(f"profile {name} 尚未驗證 (validated != true)")
+    python, app_dir, args = prof.get("python"), prof.get("app_dir"), prof.get("args")
+    if not (isinstance(python, str) and isinstance(app_dir, str)
+            and isinstance(args, list) and all(isinstance(x, str) for x in args)):
+        refuse(f"profile {name} 欄位型別錯誤")
+    if not os.access(python, os.X_OK):
+        refuse(f"python 不可執行：{python}")
+    argv = [python, app_dir.rstrip("/") + "/main.py", *args]  # argv[0] 為 python，供 /proc 比對
+    if a.dry_run:
+        print(json.dumps({"cwd": app_dir, "argv": argv}))
+        return
+    os.chdir(app_dir)
+    os.execv(python, argv)
+
+
+if __name__ == "__main__":
+    main()
